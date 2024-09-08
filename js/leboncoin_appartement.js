@@ -11,6 +11,12 @@ function delay(min, max) {
   });
 }
 
+function moveMouseRandomly(page, width = 1280, height = 800) {
+  const x = Math.floor(Math.random() * width);
+  const y = Math.floor(Math.random() * height);
+  return page.mouse.move(x, y);
+}
+
 (async () => {
   const browser = await puppeteer.launch({
     headless: false,
@@ -19,20 +25,24 @@ function delay(min, max) {
       '--disable-setuid-sandbox',
       '--disable-blink-features=AutomationControlled',
       '--disable-infobars',
-      '--lang=fr-FR,fr'
+      '--lang=fr-FR,fr',
+      '--window-size=1280,800'
     ]
   });
   const page = await browser.newPage();
 
   const userAgent = randomUseragent.getRandom();
-  await page.setUserAgent(userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-  await page.setViewport({ width: 1366, height: 768 });
-  
+  await page.setUserAgent(userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.4472.124 Safari/537.36');
+  await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 1 });
+
   await page.setExtraHTTPHeaders({
-    'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7'
+    'User-Agent': userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.4472.124 Safari/537.36',
+    'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
+    'Referer': 'https://www.leboncoin.fr/',
+    'Upgrade-Insecure-Requests': '1',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
   });
 
-  // Simule les mouvements de la souris
   await page.mouse.move(Math.random() * 100, Math.random() * 100);
 
   let currentPage = 1;
@@ -42,6 +52,10 @@ function delay(min, max) {
   while (currentPage <= maxPages) {
     try {
       await page.goto(`https://www.leboncoin.fr/recherche?category=9&locations=Annecy_74000&page=${currentPage}`, { waitUntil: 'domcontentloaded' });
+
+      // Déplacer la souris au hasard avant d'interagir avec la page
+      await moveMouseRandomly(page);
+      await delay(3000, 5000);  // Ajout d'un délai aléatoire
 
       let isCaptcha = await page.evaluate(() => {
         return document.querySelector('.no-js .captcha-container') !== null;
@@ -72,13 +86,14 @@ function delay(min, max) {
 
       for (let link of links) {
         await page.goto(link, { waitUntil: 'domcontentloaded' });
-        await delay(2000, 5000);
+        await moveMouseRandomly(page);  // Déplacer la souris au hasard sur la page de l'annonce
+        await delay(4000, 8000); // Plus long délai pour imiter une navigation humaine.
 
         const apartmentDetails = await page.evaluate(() => {
           const title = document.querySelector('h1[data-qa-id="adview_title"]')?.innerText || 'Titre non disponible';
-          const price = document.querySelector('span[data-qa-id="adview_price"]')?.innerText || 'Prix non disponible';
+          const price = document.querySelector('p.text-headline-2')?.innerText || 'Prix non disponible';
           const description = document.querySelector('div[data-qa-id="adview_description_container"] p')?.innerText || 'Description non disponible';
-          const surface = Array.from(document.querySelectorAll('div[data-qa-id="criteria_item"]')).find(el => el.innerText.includes('m²'))?.innerText || 'Surface non disponible';
+          const surface = document.querySelector('span.text-body-1')?.innerText || 'Surface non disponible';
 
           return {
             title,
@@ -90,7 +105,7 @@ function delay(min, max) {
         });
 
         apartments.push(apartmentDetails);
-        await delay(3000, 6000);
+        await delay(5000, 10000); // Augmenter la pause entre les pages pour éviter les détections.
       }
 
       currentPage++;

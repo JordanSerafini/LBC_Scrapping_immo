@@ -4,30 +4,36 @@ import randomUseragent from 'random-useragent';
 
 puppeteer.use(StealthPlugin());
 
-// Fonction pour créer un délai personnalisé avec un délai aléatoire
 function delay(min, max) {
-  return new Promise(function(resolve) { 
+  return new Promise(resolve => {
     const time = Math.floor(Math.random() * (max - min + 1)) + min;
     setTimeout(resolve, time);
   });
 }
 
 (async () => {
-  const browser = await puppeteer.launch({ 
+  const browser = await puppeteer.launch({
     headless: false,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-blink-features=AutomationControlled',
-      '--disable-infobars'
+      '--disable-infobars',
+      '--lang=fr-FR,fr'
     ]
   });
   const page = await browser.newPage();
-  
-  // Configure User-Agent et viewport
+
   const userAgent = randomUseragent.getRandom();
   await page.setUserAgent(userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
   await page.setViewport({ width: 1366, height: 768 });
+  
+  await page.setExtraHTTPHeaders({
+    'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7'
+  });
+
+  // Simule les mouvements de la souris
+  await page.mouse.move(Math.random() * 100, Math.random() * 100);
 
   let currentPage = 1;
   const maxPages = 2;
@@ -37,21 +43,18 @@ function delay(min, max) {
     try {
       await page.goto(`https://www.leboncoin.fr/recherche?category=9&locations=Annecy_74000&page=${currentPage}`, { waitUntil: 'domcontentloaded' });
 
-      // Vérification de la présence du CAPTCHA
       let isCaptcha = await page.evaluate(() => {
         return document.querySelector('.no-js .captcha-container') !== null;
       });
 
       if (isCaptcha) {
         console.log("CAPTCHA détecté, veuillez le résoudre manuellement.");
-        // Attendre que l'utilisateur résolve le CAPTCHA
         await page.waitForFunction(() => {
           return document.querySelector('.no-js .captcha-container') === null;
         }, { timeout: 0 });
         console.log("CAPTCHA résolu.");
       }
 
-      // Gestion de la fenêtre de consentement aux cookies après le CAPTCHA
       try {
         await page.waitForSelector('button[id="didomi-notice-agree-button"]', { timeout: 10000 });
         await page.click('button[id="didomi-notice-agree-button"]');
@@ -60,7 +63,6 @@ function delay(min, max) {
         console.log('Pas de fenêtre de consentement à gérer.');
       }
 
-      // Attendre que les annonces soient chargées
       await page.waitForSelector('a[data-test-id="ad"]', { timeout: 60000 });
 
       const links = await page.evaluate(() => {
@@ -70,9 +72,7 @@ function delay(min, max) {
 
       for (let link of links) {
         await page.goto(link, { waitUntil: 'domcontentloaded' });
-
-        // Pause pour simuler une lecture humaine
-        await delay(2000, 5000);  // Pause aléatoire entre 2 et 5 secondes
+        await delay(2000, 5000);
 
         const apartmentDetails = await page.evaluate(() => {
           const title = document.querySelector('h1[data-qa-id="adview_title"]')?.innerText || 'Titre non disponible';
@@ -90,9 +90,7 @@ function delay(min, max) {
         });
 
         apartments.push(apartmentDetails);
-
-        // Pause entre chaque annonce
-        await delay(3000, 6000);  // Pause aléatoire entre 3 et 6 secondes
+        await delay(3000, 6000);
       }
 
       currentPage++;

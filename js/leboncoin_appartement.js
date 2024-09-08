@@ -17,23 +17,50 @@ function moveMouseRandomly(page, width = 1280, height = 800) {
   return page.mouse.move(x, y);
 }
 
+async function scrollPage(page) {
+  await page.evaluate(async () => {
+    await new Promise(resolve => {
+      let totalHeight = 0;
+      const distance = Math.floor(Math.random() * 200) + 100; // Défiler de façon aléatoire
+      const timer = setInterval(() => {
+        window.scrollBy(0, distance);
+        totalHeight += distance;
+        if (totalHeight >= document.body.scrollHeight) {
+          clearInterval(timer);
+          resolve();
+        }
+      }, Math.random() * 500 + 200); // Délai aléatoire entre les défilements
+    });
+  });
+}
+
 (async () => {
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: false,  // Voir le navigateur
+    userDataDir: 'C:/Users/jorda/AppData/Local/Google/Chrome/User Data/Profile 1',
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-blink-features=AutomationControlled',
       '--disable-infobars',
-      '--lang=fr-FR,fr',
       '--window-size=1280,800'
     ]
   });
+  
   const page = await browser.newPage();
 
   const userAgent = randomUseragent.getRandom();
   await page.setUserAgent(userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.4472.124 Safari/537.36');
   await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 1 });
+
+  await page.setRequestInterception(true);
+  page.on('request', (request) => {
+    if (request.url().includes('iovation-first-third.js')) {
+      request.abort();  // Bloquer le script de détection
+    } else {
+      request.continue();
+    }
+  });
 
   await page.setExtraHTTPHeaders({
     'User-Agent': userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.4472.124 Safari/537.36',
@@ -43,6 +70,7 @@ function moveMouseRandomly(page, width = 1280, height = 800) {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
   });
 
+  // Mouvement initial de la souris
   await page.mouse.move(Math.random() * 100, Math.random() * 100);
 
   let currentPage = 1;
@@ -53,9 +81,13 @@ function moveMouseRandomly(page, width = 1280, height = 800) {
     try {
       await page.goto(`https://www.leboncoin.fr/recherche?category=9&locations=Annecy_74000&page=${currentPage}`, { waitUntil: 'domcontentloaded' });
 
-      // Déplacer la souris au hasard avant d'interagir avec la page
+      // Déplacer la souris de manière aléatoire avant d'interagir
       await moveMouseRandomly(page);
-      await delay(3000, 5000);  // Ajout d'un délai aléatoire
+      await delay(3000, 5000);  // Pause aléatoire
+
+      // Simuler un défilement de page
+      await scrollPage(page);
+      await delay(2000, 4000);  // Pause aléatoire après le défilement
 
       let isCaptcha = await page.evaluate(() => {
         return document.querySelector('.no-js .captcha-container') !== null;
@@ -74,7 +106,7 @@ function moveMouseRandomly(page, width = 1280, height = 800) {
         await page.click('button[id="didomi-notice-agree-button"]');
         console.log("Bouton 'Accepter & Fermer' cliqué.");
       } catch (e) {
-        console.log('Pas de fenêtre de consentement à gérer.');
+        console.log('Pas de fenêtre de consentement.');
       }
 
       await page.waitForSelector('a[data-test-id="ad"]', { timeout: 60000 });
@@ -86,8 +118,8 @@ function moveMouseRandomly(page, width = 1280, height = 800) {
 
       for (let link of links) {
         await page.goto(link, { waitUntil: 'domcontentloaded' });
-        await moveMouseRandomly(page);  // Déplacer la souris au hasard sur la page de l'annonce
-        await delay(4000, 8000); // Plus long délai pour imiter une navigation humaine.
+        await moveMouseRandomly(page);
+        await delay(3000, 6000);  // Pause pour simuler la lecture de la page
 
         const apartmentDetails = await page.evaluate(() => {
           const title = document.querySelector('h1[data-qa-id="adview_title"]')?.innerText || 'Titre non disponible';
@@ -105,7 +137,7 @@ function moveMouseRandomly(page, width = 1280, height = 800) {
         });
 
         apartments.push(apartmentDetails);
-        await delay(5000, 10000); // Augmenter la pause entre les pages pour éviter les détections.
+        await delay(5000, 10000);  // Pause plus longue pour simuler une navigation lente
       }
 
       currentPage++;

@@ -11,6 +11,13 @@ export default async function fetchBookingInfo(city) {
     await page.goto(`https://www.laforet.com/agence-immobiliere/${city}/acheter?next=88`);
     //await page.goto(`https://www.laforet.com/agence-immobiliere/annecy-parmelan/acheter?next=88`);
 
+     // Effacer les cookies
+  const client = await page.target().createCDPSession();
+  await client.send('Network.clearBrowserCookies');
+  
+  // Charger à nouveau la page
+  await page.reload();
+
     console.log('Attente des sélecteurs...');
     await page.waitForSelector('.apartment-card'); 
 

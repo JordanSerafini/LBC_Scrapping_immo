@@ -52,6 +52,5 @@ export default async function fetchBookingInfo(city) {
     console.log('Fermeture du navigateur...');
     await browser.close();
 
-    //console.log('Résultats obtenus:', results);
     return results;
 }

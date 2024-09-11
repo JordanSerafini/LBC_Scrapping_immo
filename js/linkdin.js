@@ -29,7 +29,7 @@ import puppeteer from 'puppeteer';
     await page.waitForSelector('.entity-result__title-text', { timeout: 10000 });
 
     // Extraire les 10 premiers résultats de la recherche
-    const results = await page.evaluate(() => {
+    const profileLinks = await page.evaluate(() => {
         const profileLinks = [];
         const nodes = document.querySelectorAll('.entity-result__title-text a');
 
@@ -45,7 +45,31 @@ import puppeteer from 'puppeteer';
         return profileLinks;
     });
 
-    console.log(results);
+    console.log('Profils extraits :', profileLinks);
+
+    // Itérer sur chaque profil pour extraire des informations
+    for (const profile of profileLinks) {
+        // Ouvrir un nouvel onglet pour chaque profil
+        const profilePage = await browser.newPage();
+        await profilePage.goto(profile.url, { waitUntil: 'networkidle2' });
+
+        // Attendre que les éléments du profil soient visibles
+        await profilePage.waitForSelector('.pv-text-details__left-panel', { timeout: 10000 });
+
+        // Extraire des informations du profil
+        const profileInfo = await profilePage.evaluate(() => {
+            const name = document.querySelector('.pv-text-details__left-panel h1')?.textContent?.trim();
+            const title = document.querySelector('.pv-text-details__left-panel .text-body-medium')?.textContent?.trim();
+            const location = document.querySelector('.pv-top-card--list-bullet li')?.textContent?.trim();
+
+            return { name, title, location };
+        });
+
+        console.log('Infos profil :', profileInfo);
+
+        // Fermer l'onglet du profil
+        await profilePage.close();
+    }
 
     // Fermer le navigateur
     await browser.close();

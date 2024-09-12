@@ -7,6 +7,14 @@ import puppeteer from 'puppeteer';
     // Accéder à la page de connexion LinkedIn
     await page.goto('https://www.linkedin.com/login', { waitUntil: 'networkidle2' });
 
+    const cookies = [
+        {
+            name: 'li_at',
+            value: 'AQEDATKmGy8F5Q7-AAABdG3Zz2kAAAF6J1dH6U4A1jE3Z2N6QvQyKv',    
+            domain: '.linkedin.com',
+        },
+    ];
+
     // Remplir le formulaire de connexion
     await page.type('input#username', 'tinkerbell.7490@gmail.com');
     await page.type('input#password', 'qQfmp5$Jok4Gx!P5');

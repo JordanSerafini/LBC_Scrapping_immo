@@ -53,7 +53,7 @@ import puppeteer from 'puppeteer';
         return profileLinks;
     });
 
-    //console.log('Profils extraits :', profileLinks);
+    console.log('Profils extraits :', profileLinks);
 
     // Itérer sur chaque profil pour extraire des informations
     for (const profile of profileLinks) {

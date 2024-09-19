@@ -49,14 +49,10 @@ const delay = (time) => new Promise(resolve => setTimeout(resolve, time));
 
         
         const addresses = await page.evaluate(() => {
-            // Sélectionner toutes les balises <a> qui ont l'attribut title="Voir le plan"
             const addressElements = Array.from(document.querySelectorAll('a[title="Voir le plan"]'));
         
-            // Retourner uniquement le texte avant les balises <span> (qui contiennent des icônes ou autres éléments)
             return addressElements.map(el => {
-                // Extraire les nœuds de texte à l'intérieur de l'élément <a>
                 const textNodes = Array.from(el.childNodes).filter(node => node.nodeType === Node.TEXT_NODE);
-                // Combiner tous les nœuds de texte ensemble pour former l'adresse
                 return textNodes.map(node => node.textContent.trim()).join(' ');
             });
         });

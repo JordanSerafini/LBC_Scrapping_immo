@@ -25,7 +25,7 @@ const delay = (time) => new Promise(resolve => setTimeout(resolve, time));
         await page.type('#ou', 'Annecy');
         await delay(500);
 
-        await page.type('#quoiqui', 'restaurant');
+        await page.type('#quoiqui', 'hotel');
         await delay(500);
 
         await page.waitForSelector('#findId', { visible: true });
@@ -40,12 +40,29 @@ const delay = (time) => new Promise(resolve => setTimeout(resolve, time));
         await page.waitForSelector('a.bi-denomination.pj-link h3', { visible: true, timeout: 60000 });
         console.log('Résultats de recherche chargés.');
 
-        const results = await page.evaluate(() => {
-            const elements = Array.from(document.querySelectorAll('a.bi-denomination.pj-link h3'));
-            return elements.map(el => el.innerText.trim());
+        const name = await page.evaluate(() => {
+            const name = Array.from(document.querySelectorAll('a.bi-denomination.pj-link h3'));
+            return name.map(el => el.innerText.trim());
         });
 
-        console.log('Résultats extraits :', results);
+        console.log('Name extraits :', name);
+
+        
+        const addresses = await page.evaluate(() => {
+            // Sélectionner toutes les balises <a> qui ont l'attribut title="Voir le plan"
+            const addressElements = Array.from(document.querySelectorAll('a[title="Voir le plan"]'));
+        
+            // Retourner uniquement le texte avant les balises <span> (qui contiennent des icônes ou autres éléments)
+            return addressElements.map(el => {
+                // Extraire les nœuds de texte à l'intérieur de l'élément <a>
+                const textNodes = Array.from(el.childNodes).filter(node => node.nodeType === Node.TEXT_NODE);
+                // Combiner tous les nœuds de texte ensemble pour former l'adresse
+                return textNodes.map(node => node.textContent.trim()).join(' ');
+            });
+        });
+        
+        console.log('Adresses extraites :', addresses);
+        
 
     } catch (error) {
         console.error('Erreur dans le processus :', error);

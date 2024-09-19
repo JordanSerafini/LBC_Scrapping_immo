@@ -1,6 +1,5 @@
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import pLimit from 'p-limit';
 import { createObjectCsvWriter } from 'csv-writer';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -8,21 +7,35 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const csvWriter = createObjectCsvWriter({
-    path: path.join(__dirname, 'data.csv'),
-    header: [
-        { id: 'name', title: 'Name' },
-        { id: 'address', title: 'Address' },
-        { id: 'phone', title: 'Phone' }
-    ]
-});
+// const csvWriter = createObjectCsvWriter({
+//     path: path.join(__dirname, 'data.csv'),
+//     header: [
+//         { id: 'name', title: 'Name' },
+//         { id: 'address', title: 'Address' },
+//         { id: 'phone', title: 'Phone' }
+//     ]
+// });
 
 
 puppeteer.use(StealthPlugin());
 
 const delay = (time) => new Promise(resolve => setTimeout(resolve, time));
 
-(async () => {
+export default async function Pages_jaunes (object, city, fileName) {
+
+    if (!fileName.endsWith('.csv')) {
+        fileName += '.csv';
+    }
+
+    const csvWriter = createObjectCsvWriter({
+        path: path.join(__dirname, fileName),
+        header: [
+            { id: 'name', title: 'Name' },
+            { id: 'address', title: 'Address' },
+            { id: 'phone', title: 'Phone' }
+        ]
+    });
+
     const browser = await puppeteer.launch({ headless: false });
     try {
         const page = await browser.newPage();
@@ -38,20 +51,25 @@ const delay = (time) => new Promise(resolve => setTimeout(resolve, time));
         await page.waitForSelector('#ou', { visible: true });
         await page.waitForSelector('#quoiqui', { visible: true });
 
-        await page.type('#ou', 'Annecy');
+        await page.type('#ou', city);
         await delay(500);
 
-        await page.type('#quoiqui', 'hotel');
+        await page.type('#quoiqui', object);
         await delay(500);
 
         await page.waitForSelector('#findId', { visible: true });
         await page.click('#findId');
         console.log('Recherche soumise en cliquant sur le bouton "Trouver"...');
-        await delay(1000);
-        await page.waitForSelector('.SEL-lieu.pjpopin-closer.pj-link', { visible: true });
-        await page.click('.SEL-lieu.pjpopin-closer.pj-link');
-        console.log('Clic sur le 1er lien');
-        await delay(1000);
+        try {
+            await delay(1000);
+            await page.waitForSelector('.SEL-lieu.pjpopin-closer.pj-link', { visible: true, timeout: 3000 });
+            await page.click('.SEL-lieu.pjpopin-closer.pj-link');
+            console.log('Clic sur le 1er lien réussi.');
+            await delay(1000);
+        } catch (error) {
+            console.log('Le sélecteur n\'a pas été trouvé, passage à la suite.');
+        }
+        
 
         const allData = [];
 
@@ -144,4 +162,4 @@ const delay = (time) => new Promise(resolve => setTimeout(resolve, time));
         await browser.close();
         console.log('Navigateur fermé.');
     }
-})();
+};

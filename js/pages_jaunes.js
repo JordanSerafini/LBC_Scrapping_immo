@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const csvWriter = createObjectCsvWriter({
-    path: path.join(__dirname, 'restaurants.csv'),
+    path: path.join(__dirname, 'data.csv'),
     header: [
         { id: 'name', title: 'Name' },
         { id: 'address', title: 'Address' },
@@ -23,7 +23,7 @@ puppeteer.use(StealthPlugin());
 const delay = (time) => new Promise(resolve => setTimeout(resolve, time));
 
 (async () => {
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({ headless: false });
     try {
         const page = await browser.newPage();
 
@@ -41,7 +41,7 @@ const delay = (time) => new Promise(resolve => setTimeout(resolve, time));
         await page.type('#ou', 'Annecy');
         await delay(500);
 
-        await page.type('#quoiqui', 'restaurant');
+        await page.type('#quoiqui', 'hotel');
         await delay(500);
 
         await page.waitForSelector('#findId', { visible: true });
@@ -72,17 +72,33 @@ const delay = (time) => new Promise(resolve => setTimeout(resolve, time));
                 });
             });
 
-            await page.evaluate(() => {
-                const buttons = Array.from(document.querySelectorAll('span.value'))
-                    .filter(span => span.innerText.includes('Afficher le N°'));
 
-                buttons.forEach(button => button.click());
-                console.log('Clic sur les boutons "Afficher le N°" réussi.');
-            });
 
-            const numeros = await page.evaluate(() => {
-                return Array.from(document.querySelectorAll('span.annonceur')).map(el => el.innerText.trim());
+            let numeros = await page.evaluate(() => {
+                const numerosAffiches = Array.from(document.querySelectorAll('.number-contact span'))
+                    .map(el => el.innerText.trim());
+            
+                if (numerosAffiches.length === 0) {
+                    const buttons = Array.from(document.querySelectorAll('span.value'))
+                        .filter(span => span.innerText.includes('Afficher le N°'));
+                    
+                    buttons.forEach(button => button.click());
+                    console.log('Clic sur les boutons "Afficher le N°" réussi.');
+                }
+                
+                return numerosAffiches;
             });
+            
+            if (numeros.length === 0) {
+                await delay(2500);
+            
+                numeros = await page.evaluate(() => {
+                    return Array.from(document.querySelectorAll('.number-contact span')).map(el => el.innerText.trim());
+                });
+            }
+
+
+
 
             const pageData = name.map((nom, index) => ({
                 name: nom,

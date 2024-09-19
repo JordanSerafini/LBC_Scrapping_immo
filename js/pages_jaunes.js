@@ -1,6 +1,22 @@
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import pLimit from 'p-limit';
+import { createObjectCsvWriter } from 'csv-writer';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const csvWriter = createObjectCsvWriter({
+    path: path.join(__dirname, 'restaurants.csv'),
+    header: [
+        { id: 'name', title: 'Name' },
+        { id: 'address', title: 'Address' },
+        { id: 'phone', title: 'Phone' }
+    ]
+});
+
 
 puppeteer.use(StealthPlugin());
 
@@ -78,15 +94,15 @@ const delay = (time) => new Promise(resolve => setTimeout(resolve, time));
 
             const nextPageExists = await page.$('#pagination-next');
             if (nextPageExists) {
-                console.log('Attente de 5 secondes avant de cliquer sur "Suivant"...');
-                await delay(5000);
-                
+                console.log('Attente de 2.5 secondes avant de cliquer sur "Suivant"...');
+                await delay(2500);
+
                 try {
                     console.log('Clic sur "Suivant"...');
                     await page.click('#pagination-next');
-                    
+
                     await page.waitForSelector('a.bi-denomination.pj-link h3', { visible: true, timeout: 60000 });
-                    await delay(5000);
+                    await delay(2500);
                 } catch (err) {
                     console.error('Erreur lors du passage à la page suivante :', err);
                     hasNextPage = false;
@@ -97,6 +113,14 @@ const delay = (time) => new Promise(resolve => setTimeout(resolve, time));
         }
 
         console.log('Données JSON assemblées pour toutes les pages :', JSON.stringify(allData, null, 2));
+
+        csvWriter.writeRecords(allData)
+            .then(() => {
+                console.log('Les données ont été écrites dans le fichier restaurants.csv avec succès.');
+            })
+            .catch((err) => {
+                console.error('Erreur lors de l\'écriture dans le fichier CSV :', err);
+            });
 
     } catch (error) {
         console.error('Erreur dans le processus :', error);
